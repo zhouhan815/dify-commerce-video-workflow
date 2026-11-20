@@ -9,7 +9,9 @@
 | 服装试穿与脚本逆推 | 原片杯子替换 |
 | :---: | :---: |
 | [![多套穿搭样片的三帧预览，点击查看视频](media/fashion-tryon-poster.jpg)](media/fashion-tryon.mp4) | [![杯子替换样片的三帧预览，点击查看视频](media/cup-replacement-poster.jpg)](media/cup-replacement.mp4) |
-| [播放穿搭样片 · 10 秒](media/fashion-tryon.mp4) | [播放杯子替换样片 · 9.1 秒](media/cup-replacement.mp4) |
+| [打开穿搭样片 MP4 · 10 秒](media/fashion-tryon.mp4) | [打开杯子替换 MP4 · 9.1 秒](media/cup-replacement.mp4) |
+
+点击封面可查看视频文件。也可从 GitHub 文件页下载 MP4 播放。
 
 **穿搭样片**是最后一次导出的带标题与原声版本。它展示了从服装试穿、逐拍编排到视频生成与后期合成的链路。实片可辨认 9 套搭配，漏款和部分错拍已记录为复测项。
 
