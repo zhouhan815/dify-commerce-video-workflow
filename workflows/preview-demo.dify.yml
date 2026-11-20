@@ -1,0 +1,411 @@
+version: 0.7.0
+kind: app
+dependencies: []
+app:
+  name: 作品集｜电商视频双路线演示
+  description: 用实际分流规则确定路线，返回固定的历史案例摘要。
+  mode: workflow
+  icon: 🎬
+  icon_background: '#EBE4D9'
+  icon_type: emoji
+  use_icon_as_answer_icon: false
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  rag_pipeline_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    text_to_speech:
+      enabled: false
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+  graph:
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.7
+    nodes:
+    - id: '1795161100000'
+      type: custom
+      data:
+        type: start
+        title: 制作需求
+        desc: 输入一句话或选择路线。
+        variables:
+        - variable: business_route
+          label: 业务路线
+          type: select
+          required: true
+          default: auto
+          options:
+          - auto
+          - 服装逆推与试穿
+          - 原片换商品
+          - 原片换人物
+          - 原片同时换商品和人物
+          max_length: 256
+        - variable: request_text
+          label: 需求说明
+          type: paragraph
+          required: false
+          default: ''
+          options: []
+          max_length: 6000
+      position:
+        x: 90
+        y: 360
+      positionAbsolute:
+        x: 90
+        y: 360
+      width: 270
+      height: 100
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: '1795161100001'
+      type: custom
+      data:
+        type: code
+        title: 运行项目中的需求分流规则
+        desc: 从当前项目保留的原始规则。
+        code_language: python3
+        code: "import re\n\ndef main(business_route=\"\", request_text=\"\", operation=\"\", replacement_job_id=\"\", uploaded_roles=\"none\",\n  \
+          \       product_image_paths=\"\", person_image_paths=\"\"):\n    choices = {\"服装逆推与试穿\": \"fashion\", \"原片换商品\": \"product\",\n         \
+          \      \"原片换人物\": \"person\", \"原片同时换商品和人物\": \"both\"}\n    help_text = \"请在「业务路线」选择服装逆推与试穿、原片换商品、原片换人物或原片同时换商品和人物，再次运行。\"\n    def result(route,\
+          \ mode=\"\", reason=\"\"):\n        return {\"route\": route, \"replacement_mode\": mode, \"guidance\": reason}\n    if business_route and\
+          \ business_route != \"auto\":\n        mode = choices.get(business_route)\n        if mode == \"fashion\":\n            return result(\"\
+          fashion\")\n        if mode:\n            return result(\"replacement\", mode)\n        return result(\"clarify\", reason=help_text)\n  \
+          \  resuming = bool(replacement_job_id) or operation == \"replacement_status\"\n    brief = (request_text or \"\").lower().strip()\n    supplied\
+          \ = {role for role, paths in ((\"product\", product_image_paths), (\"person\", person_image_paths))\n                if paths or uploaded_roles\
+          \ in (role, \"both\")}\n    if not brief:\n        if resuming:\n            return result(\"replacement\")\n        if supplied:\n     \
+          \       return result(\"replacement\", \"both\" if len(supplied) == 2 else next(iter(supplied)))\n        if operation == \"replacement_analyze\"\
+          :\n            return result(\"clarify\", reason=\"新任务请指定原片换商品、换人物或同时替换，并提供目标参考图。已有任务可直接填写任务编号。\")\n        return result(\"fashion\")  #\
+          \ Existing API clients supply only the original fields.\n\n    # Drop explicit preservation clauses before detecting the subjects of an edit.\n\
+          \    product = r\"商品|产品|货品|货物|物品|手持物|手里的东西|衣服|服装|衣物|(?<=换)衣|(?<=换)品|鞋子|手表|水杯|杯子|包包|包袋|口红|瓶子|耳机|product|item\"\n    person = r\"人物|人像|模特|演员|主持人|主角|主播|出镜人|代言人|角色|女生|男生|女孩|男孩|女主|男主|人脸|脸|人|model\\\
+          b|person|actor\"\n    change = r\"替换|替代|更换|调换|置换|换走|换掉|换成|更改为|改成|改为|换|replace|swap\"\n    fashion = bool(re.search(r\"试穿|试衣|穿搭|服装逆推|逆推.{0,8}(?:服装|穿搭|试穿)|平铺图|白底图.{0,6}(?:上身|穿)|换装视频|(?:多|\\\
+          d+)套换装|try[ -]?on\", brief))\n    roles = set()\n    subject = r\"([PH](?:\\s*(?:和|与|跟|、|及|以及|还有|and|/)\\s*[PH])?)\"\n    preserve = r\"\
+          (?:保持不变|保持原样|保持不动|不用换|无需更换|不要换|不用动|别动|别换|不动|不换|不改|不变|照旧|保持|保留|沿用|锁定)\"\n    for clause in re.split(r\"[，,。；;！？!?\\n]\", brief):\n       \
+          \ marked = re.sub(person, \"H\", re.sub(product, \"P\", clause))\n        held = r\"(?:在|的)?(?:手持|手中|手里|手上|身上|手拿|拿着|展示)(?:穿着|穿|拿着|拿|戴着|戴|的|那|这|一|个|件|款|只)*P\"\
+          \n        marked = re.sub(\"(?:H|他|她)\" + held, \"P\", marked)\n        marked = re.sub(r\"(和|与|跟|及|、)(?:他|她|其|自己)?\" + held, r\"\\1P\",\
+          \ marked)\n        marked = re.sub(preserve + r\"(?:原片里的?|原有|原来的?|原|这个|该)?\\s*\" + subject, \" \", marked)\n        marked = re.sub(subject\
+          \ + r\"\\s*(?:都|也|要|先)?\" + preserve, \" \", marked)\n        marked = re.sub(change, \"V\", marked)\n        after = r\"V\\s*(?:(?:一下|个|成|掉|原片|原视频|视频|片|这|那|新|旧|原来|原有|原|目标|我们|我|这个|那个|里面|里|中|的|手持|手里|展示|镜头|the|a|\\\
+          s)\\s*)*\"\n        before = r\"(?:一起|全都|都|同时|也|直接|给我|给|全部|要|先|只|仅|的外观|的身份|重新|进行|做个|做|\\s)*V\"\n        for pattern in (after + subject,\
+          \ subject + before):\n            for match in re.finditer(pattern, marked):\n                roles.update(\"product\" if mark == \"P\" else\
+          \ \"person\" for mark in re.findall(\"[PH]\", match[1]))\n    if fashion and (roles or resuming):\n        return result(\"clarify\", reason=\"\
+          需求同时提到试穿制作与原片局部替换。\" + help_text)\n    if fashion:\n        return result(\"fashion\")\n    if roles:\n        return result(\"replacement\"\
+          , \"both\" if len(roles) == 2 else next(iter(roles)))\n    if supplied and re.search(change, brief):\n        return result(\"replacement\"\
+          , \"both\" if len(supplied) == 2 else next(iter(supplied)))\n    if resuming and not re.search(change, brief):\n        return result(\"\
+          replacement\")\n    return result(\"clarify\", reason=\"请说明是重新制作试穿视频，还是保留原片镜头并指定要替换的商品或人物。\" + help_text)\n"
+        variables:
+        - variable: business_route
+          value_selector:
+          - '1795161100000'
+          - business_route
+          value_type: string
+        - variable: request_text
+          value_selector:
+          - '1795161100000'
+          - request_text
+          value_type: string
+        outputs:
+          route:
+            type: string
+            children: null
+          replacement_mode:
+            type: string
+            children: null
+          guidance:
+            type: string
+            children: null
+      position:
+        x: 405
+        y: 360
+      positionAbsolute:
+        x: 405
+        y: 360
+      width: 270
+      height: 100
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: '1795161100002'
+      type: custom
+      data:
+        type: if-else
+        title: 选择试穿、替换或澄清
+        desc: 按需求确认目标。
+        cases:
+        - id: 'true'
+          case_id: 'true'
+          logical_operator: and
+          conditions:
+          - id: 8a88be5b-c04e-50f9-b3af-75a981326b0b
+            variable_selector:
+            - '1795161100001'
+            - route
+            varType: string
+            comparison_operator: is
+            value: fashion
+        - id: replacement
+          case_id: replacement
+          logical_operator: and
+          conditions:
+          - id: 94cd2e47-47fe-5c54-87a4-4b73ed02be99
+            variable_selector:
+            - '1795161100001'
+            - route
+            varType: string
+            comparison_operator: is
+            value: replacement
+      position:
+        x: 720
+        y: 360
+      positionAbsolute:
+        x: 720
+        y: 360
+      width: 270
+      height: 100
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: '1795161100003'
+      type: custom
+      data:
+        type: code
+        title: 穿搭演示摘要
+        desc: 读取固定案例摘要。
+        code_language: python3
+        code: "import json\n\ndef main():\n    example = {\n        \"展示数据\": \"穿搭项目的历史摘要\",\n        \"试穿款数\": 10, \"计划换装数\": 9,\n        \"排程与音乐拍点最大偏差_ms\"\
+          : 29.3,\n        \"可交付字段\": [\"款序\", \"换装秒点\", \"动作起止与幅度\", \"表情\", \"参考图\", \"视频模型参数\"]\n    }\n    return {\"preview\": json.dumps(example,\
+          \ ensure_ascii=False, indent=2)}\n"
+        variables: []
+        outputs:
+          preview:
+            type: string
+            children: null
+      position:
+        x: 1040
+        y: 130
+      positionAbsolute:
+        x: 1040
+        y: 130
+      width: 270
+      height: 100
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: '1795161100004'
+      type: custom
+      data:
+        type: code
+        title: 原片编辑演示摘要
+        desc: 按照选择的范围返回历史摘要。
+        code_language: python3
+        code: "import json\n\ndef main(replacement_mode):\n    examples = {\n        \"product\": {\"商品参考图\": 2, \"人物参考图\": 0, \"已核对镜头\": 2, \"历史例状态\"\
+          : \"制作表已准备\"},\n        \"person\": {\"商品参考图\": 0, \"人物参考图\": 1, \"历史例状态\": \"素材预检通过\"},\n        \"both\": {\"商品参考图\": 1, \"人物参考图\": 1,\
+          \ \"已核对镜头\": 14, \"历史例状态\": \"制作表已准备\"},\n    }\n    sample = {\"展示数据\": \"原片编辑的固定历史摘要\", **examples.get(replacement_mode, {})}\n    return\
+          \ {\"preview\": json.dumps(sample, ensure_ascii=False, indent=2)}\n"
+        variables:
+        - variable: replacement_mode
+          value_selector:
+          - '1795161100001'
+          - replacement_mode
+          value_type: string
+        outputs:
+          preview:
+            type: string
+            children: null
+      position:
+        x: 1040
+        y: 360
+      positionAbsolute:
+        x: 1040
+        y: 360
+      width: 270
+      height: 100
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: '1795161100005'
+      type: custom
+      data:
+        type: end
+        title: 输出穿搭预览
+        desc: 用于展示产物结构。
+        outputs:
+        - variable: route
+          value_selector:
+          - '1795161100001'
+          - route
+          value_type: string
+        - variable: recorded_example
+          value_selector:
+          - '1795161100003'
+          - preview
+          value_type: string
+      position:
+        x: 1360
+        y: 130
+      positionAbsolute:
+        x: 1360
+        y: 130
+      width: 270
+      height: 100
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: '1795161100006'
+      type: custom
+      data:
+        type: end
+        title: 输出替换预览
+        desc: 用于展示素材对应关系。
+        outputs:
+        - variable: route
+          value_selector:
+          - '1795161100001'
+          - route
+          value_type: string
+        - variable: replacement_mode
+          value_selector:
+          - '1795161100001'
+          - replacement_mode
+          value_type: string
+        - variable: recorded_example
+          value_selector:
+          - '1795161100004'
+          - preview
+          value_type: string
+      position:
+        x: 1360
+        y: 360
+      positionAbsolute:
+        x: 1360
+        y: 360
+      width: 270
+      height: 100
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: '1795161100007'
+      type: custom
+      data:
+        type: end
+        title: 提示澄清范围
+        desc: 提供下一次可选的制作路线。
+        outputs:
+        - variable: route
+          value_selector:
+          - '1795161100001'
+          - route
+          value_type: string
+        - variable: guidance
+          value_selector:
+          - '1795161100001'
+          - guidance
+          value_type: string
+      position:
+        x: 1040
+        y: 600
+      positionAbsolute:
+        x: 1040
+        y: 600
+      width: 270
+      height: 100
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    edges:
+    - id: 1795161100000-source-1795161100001-target
+      source: '1795161100000'
+      sourceHandle: source
+      target: '1795161100001'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        sourceType: start
+        targetType: code
+        isInIteration: false
+        isInLoop: false
+    - id: 1795161100001-source-1795161100002-target
+      source: '1795161100001'
+      sourceHandle: source
+      target: '1795161100002'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        sourceType: code
+        targetType: if-else
+        isInIteration: false
+        isInLoop: false
+    - id: 1795161100002-true-1795161100003-target
+      source: '1795161100002'
+      sourceHandle: 'true'
+      target: '1795161100003'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        sourceType: if-else
+        targetType: code
+        isInIteration: false
+        isInLoop: false
+    - id: 1795161100002-replacement-1795161100004-target
+      source: '1795161100002'
+      sourceHandle: replacement
+      target: '1795161100004'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        sourceType: if-else
+        targetType: code
+        isInIteration: false
+        isInLoop: false
+    - id: 1795161100002-false-1795161100007-target
+      source: '1795161100002'
+      sourceHandle: 'false'
+      target: '1795161100007'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        sourceType: if-else
+        targetType: end
+        isInIteration: false
+        isInLoop: false
+    - id: 1795161100003-source-1795161100005-target
+      source: '1795161100003'
+      sourceHandle: source
+      target: '1795161100005'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        sourceType: code
+        targetType: end
+        isInIteration: false
+        isInLoop: false
+    - id: 1795161100004-source-1795161100006-target
+      source: '1795161100004'
+      sourceHandle: source
+      target: '1795161100006'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        sourceType: code
+        targetType: end
+        isInIteration: false
+        isInLoop: false

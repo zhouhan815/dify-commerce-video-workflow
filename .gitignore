@@ -1,0 +1,9 @@
+.runtime/
+.env
+.env.*
+__pycache__/
+*.clixml
+*.dpapi
+*.sqlite
+*.sqlite3
+*.log

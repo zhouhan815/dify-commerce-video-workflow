@@ -1,0 +1,668 @@
+version: 0.7.0
+kind: app
+app:
+  name: 服装白底素材与模特试穿
+  description: 上传目标模特和商品穿搭照，逐套生成白底服装与试穿。分别输出模型参考、服装平铺和试穿素材。
+  mode: workflow
+  icon: 👕
+  icon_background: '#E4E9DB'
+  icon_type: emoji
+  use_icon_as_answer_icon: false
+dependencies: []
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  rag_pipeline_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    text_to_speech:
+      enabled: false
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+  graph:
+    nodes:
+    - id: '1795050000000'
+      type: custom
+      data:
+        type: start
+        title: 上传目标模特照和商品照
+        desc: ''
+        variables:
+        - variable: model_photo
+          label: 目标模特照片
+          type: file
+          required: true
+          default: ''
+          options: []
+          max_length: 1
+          allowed_file_types:
+          - image
+          allowed_file_upload_methods:
+          - local_file
+          allowed_file_extensions:
+          - .JPG
+          - .JPEG
+          - .PNG
+          - .WEBP
+        - variable: garment_photos
+          label: 穿搭照片或服装白底图
+          type: file-list
+          required: true
+          default: ''
+          options: []
+          max_length: 20
+          allowed_file_types:
+          - image
+          allowed_file_upload_methods:
+          - local_file
+          allowed_file_extensions:
+          - .JPG
+          - .JPEG
+          - .PNG
+          - .WEBP
+        - variable: model_mode
+          label: 模特处理方式
+          type: select
+          required: true
+          default: 复用已确认模特图
+          options:
+          - 复用已确认模特图
+          - 整理正面全身参考
+          max_length: 256
+        - variable: garment_mode
+          label: 服装处理方式
+          type: select
+          required: true
+          default: 从商品上身照生成白底图
+          options:
+          - 从商品上身照生成白底图
+          - 复用已有白底图
+          max_length: 256
+        - variable: dual_photos
+          label: 双人合照序号（可选，如 2,5）
+          type: text-input
+          required: false
+          default: ''
+          options: []
+          max_length: 256
+        - variable: garment_notes
+          label: 服装版型备注（可选，如 1：深咖A字半身裙）
+          type: paragraph
+          required: false
+          default: ''
+          options: []
+          max_length: 1000
+      position:
+        x: 80
+        y: 280
+      positionAbsolute:
+        x: 80
+        y: 280
+      width: 244
+      height: 82
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: '1795050002000'
+      type: custom
+      data:
+        type: http-request
+        title: 保存或整理模特参考图
+        desc: 复用上传的正面全身图，或整理成同一模特的正面参考。
+        url: http://host.docker.internal:8766/model
+        method: post
+        params: ''
+        headers: ''
+        authorization:
+          type: no-auth
+          config: null
+        body:
+          type: form-data
+          data:
+          - key: model_photo
+            type: file
+            file:
+            - '1795050000000'
+            - model_photo
+            value: ''
+          - key: model_mode
+            type: text
+            value: '{{#1795050000000.model_mode#}}'
+        timeout:
+          max_connect_timeout: 10
+          max_read_timeout: 540
+          max_write_timeout: 60
+        ssl_verify: true
+        retry_config:
+          retry_enabled: false
+          max_retries: 2
+          retry_interval: 1000
+        variables: []
+      position:
+        x: 390
+        y: 280
+      positionAbsolute:
+        x: 390
+        y: 280
+      width: 244
+      height: 82
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: '1795050004000'
+      type: custom
+      data:
+        type: code
+        title: 读取模特参考素材
+        desc: ''
+        code_language: python3
+        code: "import json\n\ndef main(body: str, status_code: int) -> dict:\n    data = json.loads(body)\n    if status_code\
+          \ != 200 or not data.get(\"run_id\") or not data.get(\"model_image\"):\n        raise ValueError(data.get(\"error\"\
+          , \"模特图处理失败\"))\n    return {\"run_id\": data[\"run_id\"], \"model_image\": data[\"model_image\"]}\n"
+        variables:
+        - variable: body
+          value_selector:
+          - '1795050002000'
+          - body
+          value_type: string
+        - variable: status_code
+          value_selector:
+          - '1795050002000'
+          - status_code
+          value_type: number
+        outputs:
+          run_id:
+            type: string
+            children: null
+          model_image:
+            type: object
+            children: null
+      position:
+        x: 700
+        y: 280
+      positionAbsolute:
+        x: 700
+        y: 280
+      width: 244
+      height: 82
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: '1795050006000'
+      type: custom
+      data:
+        type: iteration
+        title: 逐张提取服装白底图
+        desc: ''
+        width: 352
+        height: 270
+        iterator_selector:
+        - '1795050000000'
+        - garment_photos
+        iterator_input_type: array[file]
+        start_node_id: '1795050008000'
+        output_selector:
+        - '1795050010000'
+        - body
+        output_type: array[string]
+        is_parallel: false
+        parallel_nums: 1
+        error_handle_mode: continue-on-error
+        flatten_output: true
+      position:
+        x: 1010
+        y: 210
+      positionAbsolute:
+        x: 1010
+        y: 210
+      width: 352
+      height: 270
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: '1795050008000'
+      type: custom-iteration-start
+      data:
+        type: iteration-start
+        title: 平铺入口
+        desc: ''
+        isInIteration: true
+        iteration_id: '1795050006000'
+      position:
+        x: 26
+        y: 67
+      positionAbsolute:
+        x: 26
+        y: 67
+      width: 244
+      height: 82
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+      parentId: '1795050006000'
+      extent: parent
+      zIndex: 1002
+    - id: '1795050010000'
+      type: custom
+      data:
+        type: http-request
+        title: 分件提取并组合白底图
+        desc: 根据合照序号分左右，分别生成上装和下装，并组合成白底平铺。
+        url: http://host.docker.internal:8766/flatlay
+        method: post
+        params: ''
+        headers: ''
+        authorization:
+          type: no-auth
+          config: null
+        body:
+          type: form-data
+          data:
+          - key: garment_photo
+            type: file
+            file:
+            - '1795050006000'
+            - item
+            value: ''
+          - key: source_index
+            type: text
+            value: '{{#1795050006000.index#}}'
+          - key: dual_photos
+            type: text
+            value: '{{#1795050000000.dual_photos#}}'
+          - key: garment_notes
+            type: text
+            value: '{{#1795050000000.garment_notes#}}'
+          - key: garment_mode
+            type: text
+            value: '{{#1795050000000.garment_mode#}}'
+          - key: run_id
+            type: text
+            value: '{{#1795050004000.run_id#}}'
+        timeout:
+          max_connect_timeout: 10
+          max_read_timeout: 540
+          max_write_timeout: 60
+        ssl_verify: true
+        retry_config:
+          retry_enabled: false
+          max_retries: 2
+          retry_interval: 1000
+        variables: []
+        isInIteration: true
+        iteration_id: '1795050006000'
+      position:
+        x: 80
+        y: 67
+      positionAbsolute:
+        x: 80
+        y: 67
+      width: 244
+      height: 82
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+      parentId: '1795050006000'
+      extent: parent
+      zIndex: 1002
+    - id: '1795050012000'
+      type: custom
+      data:
+        type: code
+        title: 汇总平铺图并配对
+        desc: ''
+        code_language: python3
+        code: "import json\n\ndef main(results: list, run_id: str) -> dict:\n    galleries, jobs, checks = [], [], []\n  \
+          \  for index, body in enumerate(results or [], start=1):\n        try:\n            data = json.loads(body) if isinstance(body,\
+          \ str) and body else {}\n        except ValueError:\n            data = {}\n        looks = data.get(\"looks\")\
+          \ or []\n        if not looks:\n            checks.append({\"source_photo\": index, \"stage\": \"平铺\", \"error\"\
+          : data.get(\"error\", \"未取得平铺结果\")})\n        for look in looks:\n            asset = look.get(\"garment_image\"\
+          )\n            label = {\"look_id\": look.get(\"look_id\"), \"source_photo\": look.get(\"source_photo\"), \"side\"\
+          : look.get(\"side\", \"\")}\n            if asset:\n                galleries.append({**label, **asset, \"parts\"\
+          : look.get(\"parts\", {})})\n                jobs.append(json.dumps({\"run_id\": run_id, \"look_id\": look[\"look_id\"\
+          ],\n                                        \"notes\": look.get(\"notes\", \"\")}, ensure_ascii=False))\n      \
+          \      else:\n                checks.append({**label, \"stage\": \"平铺\", \"error\": look.get(\"error\", \"平铺失败\"\
+          )})\n    return {\"garment_images\": galleries, \"tryon_jobs\": jobs, \"issues\": checks}\n"
+        variables:
+        - variable: results
+          value_selector:
+          - '1795050006000'
+          - output
+          value_type: array[string]
+        - variable: run_id
+          value_selector:
+          - '1795050004000'
+          - run_id
+          value_type: string
+        outputs:
+          garment_images:
+            type: array[object]
+            children: null
+          tryon_jobs:
+            type: array[string]
+            children: null
+          issues:
+            type: array[object]
+            children: null
+      position:
+        x: 1430
+        y: 280
+      positionAbsolute:
+        x: 1430
+        y: 280
+      width: 244
+      height: 82
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: '1795050014000'
+      type: custom
+      data:
+        type: iteration
+        title: 逐套给同一模特试穿
+        desc: ''
+        width: 352
+        height: 270
+        iterator_selector:
+        - '1795050012000'
+        - tryon_jobs
+        iterator_input_type: array[string]
+        start_node_id: '1795050016000'
+        output_selector:
+        - '1795050018000'
+        - body
+        output_type: array[string]
+        is_parallel: false
+        parallel_nums: 1
+        error_handle_mode: continue-on-error
+        flatten_output: true
+      position:
+        x: 1740
+        y: 210
+      positionAbsolute:
+        x: 1740
+        y: 210
+      width: 352
+      height: 270
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: '1795050016000'
+      type: custom-iteration-start
+      data:
+        type: iteration-start
+        title: 试穿入口
+        desc: ''
+        isInIteration: true
+        iteration_id: '1795050014000'
+      position:
+        x: 26
+        y: 67
+      positionAbsolute:
+        x: 26
+        y: 67
+      width: 244
+      height: 82
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+      parentId: '1795050014000'
+      extent: parent
+      zIndex: 1002
+    - id: '1795050018000'
+      type: custom
+      data:
+        type: http-request
+        title: 模特全身图＋服装白底图
+        desc: 以模特全身照为人物底图，输出白底的全身试穿。
+        url: http://host.docker.internal:8766/tryon
+        method: post
+        params: ''
+        headers: ''
+        authorization:
+          type: no-auth
+          config: null
+        body:
+          type: json
+          data:
+          - type: text
+            key: ''
+            value: '{{#1795050014000.item#}}'
+        timeout:
+          max_connect_timeout: 10
+          max_read_timeout: 540
+          max_write_timeout: 60
+        ssl_verify: true
+        retry_config:
+          retry_enabled: false
+          max_retries: 2
+          retry_interval: 1000
+        variables: []
+        isInIteration: true
+        iteration_id: '1795050014000'
+      position:
+        x: 80
+        y: 67
+      positionAbsolute:
+        x: 80
+        y: 67
+      width: 244
+      height: 82
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+      parentId: '1795050014000'
+      extent: parent
+      zIndex: 1002
+    - id: '1795050020000'
+      type: custom
+      data:
+        type: code
+        title: 匹配服装和试穿文件
+        desc: ''
+        code_language: python3
+        code: "import json\n\ndef main(results: list, garments: list, issues: list) -> dict:\n    tryon_images = []\n    issues\
+          \ = list(issues or [])\n    garments = garments or []\n    by_look = {}\n    for raw in results or []:\n       \
+          \ try:\n            record = json.loads(raw) if isinstance(raw, str) and raw else {}\n        except ValueError:\n\
+          \            continue\n        if record.get(\"look_id\"):\n            by_look[record[\"look_id\"]] = record\n\
+          \    for garment in garments:\n        record = by_look.get(garment[\"look_id\"], {})\n        asset = record.get(\"\
+          tryon_image\")\n        label = {key: garment[key] for key in (\"look_id\", \"source_photo\", \"side\")}\n     \
+          \   if asset and record.get(\"look_id\") == garment[\"look_id\"]:\n            tryon_images.append({**label, **asset})\n\
+          \        else:\n            issues.append({**label, \"stage\": \"试穿\", \"error\": record.get(\"error\", \"未取得对应试穿图\"\
+          )})\n    return {\"tryon_images\": tryon_images, \"issues\": issues}\n"
+        variables:
+        - variable: results
+          value_selector:
+          - '1795050014000'
+          - output
+          value_type: array[string]
+        - variable: garments
+          value_selector:
+          - '1795050012000'
+          - garment_images
+          value_type: array[object]
+        - variable: issues
+          value_selector:
+          - '1795050012000'
+          - issues
+          value_type: array[object]
+        outputs:
+          tryon_images:
+            type: array[object]
+            children: null
+          issues:
+            type: array[object]
+            children: null
+      position:
+        x: 2160
+        y: 280
+      positionAbsolute:
+        x: 2160
+        y: 280
+      width: 244
+      height: 82
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: '1795050022000'
+      type: custom
+      data:
+        type: end
+        title: 输出三类可复用素材
+        desc: ''
+        outputs:
+        - variable: model_reference
+          value_selector:
+          - '1795050004000'
+          - model_image
+          value_type: object
+        - variable: garment_flatlays
+          value_selector:
+          - '1795050012000'
+          - garment_images
+          value_type: array[object]
+        - variable: tryon_images
+          value_selector:
+          - '1795050020000'
+          - tryon_images
+          value_type: array[object]
+        - variable: issues
+          value_selector:
+          - '1795050020000'
+          - issues
+          value_type: array[object]
+      position:
+        x: 2470
+        y: 280
+      positionAbsolute:
+        x: 2470
+        y: 280
+      width: 244
+      height: 82
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    edges:
+    - id: 1795050000000-source-1795050002000-target
+      source: '1795050000000'
+      sourceHandle: source
+      target: '1795050002000'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        sourceType: start
+        targetType: http-request
+        isInIteration: false
+        isInLoop: false
+    - id: 1795050002000-source-1795050004000-target
+      source: '1795050002000'
+      sourceHandle: source
+      target: '1795050004000'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        sourceType: http-request
+        targetType: code
+        isInIteration: false
+        isInLoop: false
+    - id: 1795050004000-source-1795050006000-target
+      source: '1795050004000'
+      sourceHandle: source
+      target: '1795050006000'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        sourceType: code
+        targetType: iteration
+        isInIteration: false
+        isInLoop: false
+    - id: 1795050006000-source-1795050012000-target
+      source: '1795050006000'
+      sourceHandle: source
+      target: '1795050012000'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        sourceType: iteration
+        targetType: code
+        isInIteration: false
+        isInLoop: false
+    - id: 1795050012000-source-1795050014000-target
+      source: '1795050012000'
+      sourceHandle: source
+      target: '1795050014000'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        sourceType: code
+        targetType: iteration
+        isInIteration: false
+        isInLoop: false
+    - id: 1795050014000-source-1795050020000-target
+      source: '1795050014000'
+      sourceHandle: source
+      target: '1795050020000'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        sourceType: iteration
+        targetType: code
+        isInIteration: false
+        isInLoop: false
+    - id: 1795050020000-source-1795050022000-target
+      source: '1795050020000'
+      sourceHandle: source
+      target: '1795050022000'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        sourceType: code
+        targetType: end
+        isInIteration: false
+        isInLoop: false
+    - id: 1795050008000-source-1795050010000-target
+      source: '1795050008000'
+      sourceHandle: source
+      target: '1795050010000'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+      data:
+        sourceType: iteration-start
+        targetType: http-request
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1795050006000'
+    - id: 1795050016000-source-1795050018000-target
+      source: '1795050016000'
+      sourceHandle: source
+      target: '1795050018000'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+      data:
+        sourceType: iteration-start
+        targetType: http-request
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1795050014000'
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.62
