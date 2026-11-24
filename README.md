@@ -2,20 +2,25 @@
 
 让商家用自己的商品复刻高流量短视频的创意与节奏。给定一条参考片和一组素材，Dify 根据制作需求选择**逆推脚本后重新生成**或**直接在原片中替换商品、人物**。先交付可审阅的制作方案，再确认是否提交给视频模型。
 
-[观看两条样片](#成片展示) · [查看工作流](#工作流总览) · [试跑离线演示](#查看与试跑)
+[观看两条样片](#成片展示) · [查看工作流](#工作流总览) · [导入 Dify 试跑 · 无需模型 Key](#查看与试跑)
 
 ## 成片展示
 
-| 服装试穿与脚本逆推 | 原片杯子替换 |
-| :---: | :---: |
-| [![多套穿搭样片的三帧预览，点击查看视频](media/fashion-tryon-poster.jpg)](media/fashion-tryon.mp4) | [![杯子替换样片的三帧预览，点击查看视频](media/cup-replacement-poster.jpg)](media/cup-replacement.mp4) |
-| [打开穿搭样片 MP4 · 10 秒](media/fashion-tryon.mp4) | [打开杯子替换 MP4 · 9.1 秒](media/cup-replacement.mp4) |
+### 服装试穿与脚本逆推 · 10 秒
 
-点击封面可查看视频文件。也可从 GitHub 文件页下载 MP4 播放。
+https://github.com/user-attachments/assets/7ef34eec-580f-42e9-b515-e1ab6b57d2f3
 
 **穿搭样片**是最后一次导出的带标题与原声版本。它展示了从服装试穿、逐拍编排到视频生成与后期合成的链路。实片可辨认 9 套搭配，漏款和部分错拍已记录为复测项。
 
+[下载穿搭样片 MP4](https://github.com/zhouhan815/dify-commerce-video-workflow/raw/refs/heads/main/media/fashion-tryon.mp4)
+
+### 原片杯子替换 · 9.1 秒
+
+https://github.com/user-attachments/assets/df04b773-0373-4beb-b5b1-0181ef33e5f7
+
 **杯子样片**来自光序原片精编的最终回查。制作表将三款马克杯与两个人物角色分别绑定到原片，在时间线匹配后合回原声。
+
+[下载杯子替换 MP4](https://github.com/zhouhan815/dify-commerce-video-workflow/raw/refs/heads/main/media/cup-replacement.mp4)
 
 ## 工作流总览
 
@@ -59,11 +64,16 @@
 
 ## 查看与试跑
 
+在 [演示 YAML](workflows/preview-demo.dify.yml) 的文件页点击下载，再打开 Dify Studio，选择 **创建应用 → 导入 DSL 文件**。试运行时将业务路线设为 auto，输入一句需求。演示返回历史案例摘要，无需模型 Key。[导入与试跑步骤](docs/setup.md#先试离线演示)
+
+| 示例输入 | 预期输出 |
+| --- | --- |
+| 保留原片的店员，换掉手里的杯子。 | 进入商品替换分支。历史摘要显示 2 张商品参考图、0 张人物参考图和 2 个已核对镜头。 |
+
 | 文件 | 用途 |
 | --- | --- |
 | [完整 Dify 工作流](workflows/commerce-video.dify.yml) | 79 个节点、88 条连线。包含完整双分支、试穿、素材复用、分析、模型适配及视频任务出口。 |
 | [服装素材子工作流](workflows/fashion-assets.dify.yml) | 单独查看模特参考、服装白底图和试穿的素材制作流程。 |
-| [离线演示工作流](workflows/preview-demo.dify.yml) | 保留实际分流规则，返回固定的历史案例摘要。导入 Dify 后可输入一句话试跑，无需模型凭据。 |
 | [试跑步骤与后端依赖](docs/setup.md) | 查看演示输入、节点接口以及连接图像、视频和光序服务的方式。 |
 
 本项目由我负责需求拆解、工作流设计和样片验收，并使用 Codex 协助实现与排查。
